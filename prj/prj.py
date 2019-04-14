@@ -97,7 +97,8 @@ class Project:
         #$PPATH is the only allowed variable, but is not necessary
         #only lower-level relative paths to $PPATH allowed
         path = path.lstrip('/\\')
-        if path.startswith('$PPATH'): path = path[len('$PPATH'):]
+        contains_x = next((x for x in ['$PRJPATH','$PPATH'] if path.startswith(x)),None)
+        if contains_x: path = path[len(contains_x):]
         npth = opt.normpath(path).strip('\\')
         srcpth = opt.normpath(opt.join(self.ppath,npth))
         
