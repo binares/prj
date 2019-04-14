@@ -1,8 +1,10 @@
 # prj
-Setup path dependencies of a python project from any submodule, or via interactive shell/IDLE.
+Set up path dependencies of a python project from any submodule, or via interactive shell/IDLE.
 Currently only works on Windows platform + python3.
 
-....................................................................
+........................................................................................................<br />
+_Note: The name **prj** comes from shortening "project"_<br />
+........................................................................................................
 
 Suppose you have a project called MYPROJECT, with the file structure
 
@@ -71,33 +73,50 @@ name: MYPROJECT
 author: binares
 version: 0.1.0
 
+#--Source directories--
+#These must be relative paths to $PRJPATH (i.e. $PRJPATH\..\ is not allowed)
 srcDirs:
  - $PRJPATH
  - $PRJPATH\myproject\test
  
+#The $PRJPATH variable can be omitted:
+#srcDirs:
+# - .
+# - myproject\test 
+
+#If srcDirs is left undeclared (or srcDirs: null), then it will be replaced with ["$PRJPATH"].
+#srcDirs: null -> srcDirs: ["$PRJPATH"]
+#To leavy it empty declare it as empty list
+#srcDirs: []
+ 
+#--External libraries--
 extLibs:
  - $PRJPATH\..\MY_EXTERNAL_LIBRARY
  
-#the one below = E:\\PROJECTDATA\MYPROJECT
+#--Data directories--
 data: E:\\PROJECTDATA\$PRJNAME
 myData: E:\\MY_SECRET_PASSWORDS
- 
+
+#--Path variables--
 #The path variables start with $
-#Accepted path variables:
-# $PRJPATH = $PPATH
-# $PRJNAME
-# $PRJDIRNAME
+#Accepted variables:
+# $PRJPATH = $PPATH - full_path_to_MYPROJECT_directory
+# $PRJDIRNAME - the directory name in which prj.yaml is located
+# $PRJNAME - the name parameter (if no name provided then $PRJDIRNAME is used)
 # $DRIVE - searches through all logical drives for the trailing path
 # (e.g. $DRIVE:\\SOME_FOLDER); returns first found
 
 #Variables can be combined too:
 # $DRIVE:\\$PRJNAME
+
+#They are replaced when Project object is initiated:
+#E:\\PROJECTDATA\$PRJNAME -> E:\\PROJECTDATA\MYPROJECT
 ```
 
-The Project object that was initiated now contains these attributes:
+The Project object that was initiated now contains the following attribute-values:
 
 ```
-P.ppath #(path_to_MYPROJECT)
+P.ppath = path_to_MYPROJECT
 P.dpath = "E:\\PROJECTDATA\MYPROJECT"
 P.mdpath = "E:\\MY_SECRET_PASSWORDS"
 P.srcDirs = [path_to_MYPROJECT, path_to_MYPROJECT\myproject\test]
@@ -109,6 +128,15 @@ P.version = "0.1.0"
 
 After initiating a project, the sys.path will look like this:<br />
 `[srcDirs from first to last, extLibs from first to last, the old sys.path]`
+
+Note: practically the file can left empty, in which case the attributes will be assigned:<br />
+```
+P.ppath = path_to_MYPROJECT
+P.srcDirs = [path_to_MYPROJECT]
+P.name = "MYPROJECT"
+
+sys.path = [path_to_MYPROJECT, the old sys.path]
+```
 
 ## FUNCTIONS
 
