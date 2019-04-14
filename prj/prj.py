@@ -20,7 +20,7 @@ class Project:
     def __init__(self, path, name=None,
                  version=None,author=None,
                  dpath=None,mdpath=None,
-                 srcDirs=[],extLibs=[],
+                 srcDirs=['$PRJPATH'],extLibs=None,
                  ins_to = 'sys.path',
                  build = True):
         
@@ -94,8 +94,8 @@ class Project:
         
         
     def add_src(self, path, op='insert', build=True):
-        #$PPATH is the only allowed variable, but is not necessary
-        #only lower-level relative paths to $PPATH allowed
+        #$PRJPATH (or simply $PPATH) is the only allowed variable, but is not necessary
+        #only relative paths to $PRJPATH are allowed (and not backwards, i.e. $PRJPATH\..)
         path = path.lstrip('/\\')
         contains_x = next((x for x in ['$PRJPATH','$PPATH'] if path.startswith(x)),None)
         if contains_x: path = path[len(contains_x):]
@@ -130,9 +130,8 @@ class Project:
                 x.build()
             else: insert_paths(x, ins_to=self.ins_to)
         
-        srcDirs = self.srcDirs
-        if not len(srcDirs): srcDirs = [self.ppath]
-        insert_paths(srcDirs, ins_to=self.ins_to)
+        for x in self.srcDirs[::-1]:
+            insert_paths(x, ins_to=self.ins_to)
 
         
     def archive(self, package=None,
@@ -192,7 +191,7 @@ def resolve_path(path, astype='$PPATH', op='isdir', select='all', parent_prj=Non
         try: return [next(opfilter)] #[opt.realpath( next(opfilter) )]
         except StopIteration: return []
         
-    return list(opfilter) #[opt.realpath(x) for x in abs_paths if realop(x)]
+    return list(opfilter)
 
 
 
@@ -212,7 +211,7 @@ def find_prj_file(path, procedure='search', astype='$PPATH', parent_prj=None):
         #print(list(filter(opt.isfile, prjfilepaths)))
         try: response['dir'] = opt.dirname( next(filter(opt.isfile, prjfilepaths)) )
         except StopIteration:
-            response['error'] = FileNotFoundError('Project file could not be found in backward-search from curdir: "{}"'.format(path))
+            response['error'] = FileNotFoundError('Project file could not be found in backward-search from path: "{}"'.format(path))
     
     else:
         prjdirpaths = resolve_path(path, astype=astype, parent_prj=parent_prj)
@@ -232,21 +231,28 @@ def find_prj_file(path, procedure='search', astype='$PPATH', parent_prj=None):
 def read_prj_file(path):
     with open(path) as f:
         prj_instr = yaml.load(f)
-
+        
+    #empty file
+    if prj_instr is None:
+        prj_instr = {}
+        
     prj_instr['path'] = opt.dirname(path)
     
     return prj_instr
 
 
 
-def implement_prj_file(path, ins_to='sys.path', build=True):
+def implement_prj_file(path, ins_to='sys.path', build=True,
+                       replace_null_srcDirs=['$PRJPATH']):
     instr = read_prj_file(path)
-    project = _implement_prj_instructions(instr, ins_to=ins_to, build=build)
+    project = _implement_prj_instructions(instr, ins_to=ins_to, build=build,
+                                          replace_null_srcDirs=replace_null_srcDirs)
     
     return project
 
 
-def _implement_prj_instructions(prj_instr, ins_to='sys.path', build=True):
+def _implement_prj_instructions(prj_instr, ins_to='sys.path', build=True,
+                                replace_null_srcDirs=['$PRJPATH']):
     projectdir = prj_instr['path']
     projectname = opt.basename(projectdir)
 
@@ -260,8 +266,11 @@ def _implement_prj_instructions(prj_instr, ins_to='sys.path', build=True):
 
     datadir = prj_instr.get('dpath',prj_instr.get('data'))
     mydatadir = prj_instr.get('mdpath',prj_instr.get('myData'))
-    srcDirs = prj_instr.get('srcDirs',[])
-    extLibs = prj_instr.get('extLibs',[])
+    srcDirs = prj_instr.get('srcDirs')
+    extLibs = prj_instr.get('extLibs')
+    
+    if srcDirs is None:
+        srcDirs = replace_null_srcDirs
 
 
     P = Project(name=projectname,version=prj_instr.get('version'),
@@ -302,20 +311,22 @@ def get_prj(path=None, name=None):
 # (sub modules can still be imported at random time without worrying about cwd,
 #  since their setup() [if added] won't renew the paths)
 
-def qs(_file_, ins_to='sys.path', build='if_not_implemented'):
+def qs(_file_, ins_to='sys.path', build='if_not_implemented', replace_null_srcDirs=['$PRJPATH']):
         
     #searches backwards from _file_ parameter (use __file__ variable in module)
-    return setup(opt.realpath(_file_), procedure='search', astype='$PPATH', ins_to=ins_to, build=build)
+    return setup(opt.realpath(_file_), procedure='search', astype='$PPATH', ins_to=ins_to,
+                 build=build, replace_null_srcDirs=replace_null_srcDirs)
     
 
-def setup(path, procedure='from_defaults', astype='$PPATH', 
-          ins_to='sys.path', build=True, parent_prj=None):
-    
+def setup(path, procedure='from_defaults', astype='$PPATH', ins_to='sys.path', 
+          build=True, parent_prj=None, replace_null_srcDirs=['$PRJPATH']):
+    if isintance(build,str):
+        if build == 'if_not_implemented': build_bool = True
+        else: raise ValueError(build)
+    else: build_bool = bool(build)
+        
     response = find_prj_file(path, procedure=procedure, astype=astype, parent_prj=parent_prj)
     #build = True if parent_prj is None else False
-
-    build_bool = build if build != 'if_not_implemented' else True
-        
     
     if not response['dir']:
         raise response['error']
@@ -330,18 +341,18 @@ def setup(path, procedure='from_defaults', astype='$PPATH',
                 try: sys.path.remove(opt.realpath(path))
                 except ValueError: pass"""
                 
-            project = implement_prj_file(fpath, ins_to=ins_to, build=build_bool)
+            project = implement_prj_file(fpath, ins_to=ins_to, build=build_bool,
+                                         replace_null_srcDirs=replace_null_srcDirs)
         
         except AlreadyImplemented as e:
             project = e.prj
-            if build is True: project.build()
+            if build_bool: project.build()
         
         return project
     
-    
-    if ins_to is not None:
-        insert_paths([response['dir']], ins_to=ins_to)
-    
-    
-    return response['dir']
+    else:
+        if ins_to is not None:
+            insert_paths([response['dir']], ins_to=ins_to)
+
+        return response['dir']
 
