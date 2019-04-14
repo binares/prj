@@ -312,15 +312,22 @@ def get_prj(path=None, name=None):
 #  since their setup() [if added] won't renew the paths)
 
 def qs(_file_, ins_to='sys.path', build='if_not_implemented', replace_null_srcDirs=['$PRJPATH']):
-        
-    #searches backwards from _file_ parameter (use __file__ variable in module)
+    """qs - quick setup. Typical usage: P = prj.qs(__file__)
+    Searches upstream from _file_ parameter until prj.yaml is found.
+    (_file_ is a path, normally use module's __file__ variable; 
+     searched like this: [_file_\prj.yaml, _file_\..\prj.yaml, ...])
+    Should be called at the top of the script."""
+
     return setup(opt.realpath(_file_), procedure='search', astype='$PPATH', ins_to=ins_to,
                  build=build, replace_null_srcDirs=replace_null_srcDirs)
     
 
 def setup(path, procedure='from_defaults', astype='$PPATH', ins_to='sys.path', 
           build=True, parent_prj=None, replace_null_srcDirs=['$PRJPATH']):
-    if isintance(build,str):
+    """Sets up project by the `path` to prj.yaml's directory. Alternatively set `procedure` to
+    'search' in order to use it as `qs(path)`. `build=True` forces the project to "build" its paths
+    (insert them into `ins_to`). Returns: Project object."""
+    if isinstance(build,str):
         if build == 'if_not_implemented': build_bool = True
         else: raise ValueError(build)
     else: build_bool = bool(build)
@@ -346,7 +353,8 @@ def setup(path, procedure='from_defaults', astype='$PPATH', ins_to='sys.path',
         
         except AlreadyImplemented as e:
             project = e.prj
-            if build_bool: project.build()
+            if build_bool and build != 'if_not_implemented':
+                project.build()
         
         return project
     
