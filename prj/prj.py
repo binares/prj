@@ -263,7 +263,7 @@ def _implement_prj_instructions(prj_instr, ins_to='sys.path', build=True,
     if 'name' in prj_instr:
         projectname = prj_instr['name']
     
-    try: prev_implemented_prj = get_prj(projectdir)
+    try: prev_implemented_prj = get_prj(path=projectdir)
     except ValueError: pass
     else: raise AlreadyImplemented(prev_implemented_prj, path_tried=projectdir)
 
@@ -290,7 +290,7 @@ def _implement_prj_instructions(prj_instr, ins_to='sys.path', build=True,
 
 
 
-def get_prj(path=None, name=None):
+def get_prj(name=None, path=None):
     if path: path2 = opt.realpath(path)
     else: path2 = None
     #is_implem = False
