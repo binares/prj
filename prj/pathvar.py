@@ -64,7 +64,7 @@ def replace_variables(path, dtype=None, custom_param_values = {},
 
 
 def _normalize(path):
-    return path.replace('/','\\')
+    return path.replace('/','\\').lstrip('\\')
 
 
 def _defaultize(path, _normalized=False):
