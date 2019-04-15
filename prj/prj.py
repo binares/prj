@@ -1,6 +1,5 @@
 import sys,os
 opt = os.path
-from pathlib import Path
 from collections import OrderedDict, namedtuple
 import traceback
 import yaml
@@ -14,6 +13,8 @@ from .settings import DEFAULT_PATHS, PRJ_FN
 PPATHS = None
 _IMPLEMENTED = []
 INS_TO = 'sys.path'
+DELETE_SYS_PATH_INDEX = 0
+_sys_path_index_deleted = False
 
 
 class Project:
@@ -171,6 +172,9 @@ class AlreadyImplemented(Exception):
         self.prj = prj
         self.path_tried = path_tried
 
+def set_delete_sys_path_index(value):
+    global DELETE_SYS_PATH_INDEX
+    DELETE_SYS_PATH_INDEX = value
 
 #returns LIST of paths
 def resolve_path(path, astype='$PPATH', op='isdir', select='all', parent_prj=None):
@@ -327,6 +331,15 @@ def setup(path, procedure='from_defaults', astype='$PPATH', ins_to='sys.path',
     """Sets up project by the `path` to prj.yaml's directory. Alternatively set `procedure` to
     'search' in order to use it as `qs(path)`. `build=True` forces the project to "build" its paths
     (insert them into `ins_to`). Returns: Project object."""
+    
+    global _sys_path_index_deleted
+    #If this is the first time setup() is called, delete sys.path[0]
+    #Make sure though that there are no manually inserted paths;
+    if DELETE_SYS_PATH_INDEX is not None and not _sys_path_index_deleted and (
+            ins_to=='sys.path' or ins_to is sys.path):
+        del sys.path[DELETE_SYS_PATH_INDEX]
+    _sys_path_index_deleted = True
+    
     if isinstance(build,str):
         if build == 'if_not_implemented': build_bool = True
         else: raise ValueError(build)
