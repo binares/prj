@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
    name='prj',
-   version='0.3.0',
+   version='0.3.1',
    description='Setup path dependencies of a (Windows) python project from any submodule, or via interactive shell/IDLE.',
    author='binares',
    packages=['prj'],
