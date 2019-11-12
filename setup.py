@@ -9,6 +9,6 @@ setup(
    python_requires='>=3.4',
    install_requires=[
       'pywin32>=223;platform_system=="Windows"',
-      'PyYAML>=3.10, <5'
+      'PyYAML>=3.10',
    ],
 )

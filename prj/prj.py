@@ -1,7 +1,5 @@
 import sys,os
 opt = os.path
-from collections import OrderedDict, namedtuple
-import traceback
 import yaml
 
 from .management import archive
@@ -233,8 +231,8 @@ def find_prj_file(path, procedure='search', astype='$PPATH', parent_prj=None):
             
 
 def read_prj_file(path):
-    with open(path) as f:
-        prj_instr = yaml.load(f)
+    with open(path, encoding='utf-8') as f:
+        prj_instr = yaml.safe_load(f)
         
     #empty file
     if prj_instr is None:
