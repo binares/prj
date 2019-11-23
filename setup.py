@@ -8,7 +8,11 @@ setup(
    packages=['prj'],
    python_requires='>=3.4',
    install_requires=[
-      'pywin32>=223;platform_system=="Windows"',
+      'pywin32>=222,<225;platform_system=="Windows"',
       'PyYAML>=3.10',
    ],
 )
+
+#pywin 225, 226, 227 raise
+#ImportError: DLL load failed: The specified procedure could not be found.
+#when trying `from win32 import win32api`
