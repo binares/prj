@@ -1,4 +1,4 @@
-# prj-0.3.1
+# prj-0.3.2
 Set up path dependencies of a python project from any submodule, or via interactive shell/IDLE.
 Currently only works on Windows platform + python>=3.4.
 
@@ -80,6 +80,7 @@ version: 0.1.0
 srcDirs:
  - $PRJPATH
  - $PRJPATH\myproject\test
+# == src ('srcDirs' can be substituted with shorter 'src')
  
 #The $PRJPATH variable can be omitted:
 #srcDirs:
@@ -94,10 +95,13 @@ srcDirs:
 #--External libraries--
 extLibs:
  - $PRJPATH\..\MY_EXTERNAL_LIBRARY
+# == ext
  
 #--Data directories--
 data: E:\PROJECTDATA\$PRJNAME
+# == dpath
 myData: E:\MY_SECRET_PASSWORDS
+# == mdpath
 
 #--Path variables--
 #The path variables start with $
@@ -113,6 +117,9 @@ myData: E:\MY_SECRET_PASSWORDS
 
 #They are replaced when Project object is initiated:
 #E:\PROJECTDATA\$PRJNAME -> E:\PROJECTDATA\MYPROJECT
+
+# Other attributes
+aRandomAttribute = {a_random_int: 2}
 ```
 
 The Project object that was initiated now contains the following attribute-values:
@@ -127,6 +134,13 @@ P.name = "MYPROJECT"
 P.author = "binares"
 P.version = "0.1.0"
 ```
+
+Other attributes (and also the above ones) can be accessed via .get:
+
+```
+P.get('aRandomAttribute')
+P['aRandomAttribute']
+````
 
 After initiating a project, the sys.path will look like this:<br />
 `[*srcDirs from first to last, *extLibs from first to last, *the old sys.path[1:]]`

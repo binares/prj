@@ -6,7 +6,7 @@ README = (HERE / "README.md").read_text()
 
 setup(
    name='prj',
-   version='0.3.1',
+   version='0.3.2',
    description='Setup path dependencies of a (Windows) python project from any submodule, or via interactive shell/IDLE.',
    long_description=README,
    long_description_content_type='text/markdown',

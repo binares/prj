@@ -1,4 +1,4 @@
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 from .management import (archive, zip_contents)
 from .prj import (Project, setup, qs, get_prj, set_delete_sys_path_index)
