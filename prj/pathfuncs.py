@@ -1,14 +1,27 @@
 import os, sys
 opt = os.path
+import platform
+
+_IS_WINDOWS = (platform.system() == 'Windows')
+SEP = os.sep
+
+
+def split_linux_path(path):
+    path = opt.realpath(path)
+    split = path.split(SEP)[1:]
+    split[0] = '/' + split[0] + '/' + split[1]
+    del split[1]
+    return split
 
 
 def fix_drive_letter(x):
     x = opt.normpath(x)
     
-    if x.endswith(':'):
-        x += '\\'
-    elif not x.endswith('\\'):
-        x += ':\\'
+    if _IS_WINDOWS:
+        if x.endswith(':'):
+            x += '\\'
+        elif not x.endswith('\\'):
+            x += ':\\'
         
     return x
     
@@ -18,8 +31,11 @@ def drive_exists(letter):
 
 
 def get_drives():
-    from win32 import win32api
-    return win32api.GetLogicalDriveStrings().split("\x00")[:-1]
+    if _IS_WINDOWS:
+        from win32 import win32api
+        return win32api.GetLogicalDriveStrings().split("\x00")[:-1]
+    else:
+        return ['']
 
 
 #path given is meant to start with one of the variables: $DRIVE: $2DRIVE: $3DRIVE: $CURDRIVE: 

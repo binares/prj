@@ -3,7 +3,7 @@ opt = os.path
 import yaml
 
 from .management import archive
-from .pathfuncs import (search_path_in_drives, fix_drive_letter, get_drives, insert_paths)
+from .pathfuncs import (search_path_in_drives, fix_drive_letter, get_drives, insert_paths, split_linux_path, _IS_WINDOWS)
 
 from .pathvar import (replace_variables, _defaultize, _replace_default_variables, _replace_prj_variables, _replace_drive_variable)
 from .settings import DEFAULT_PATHS, PRJ_FN
@@ -17,6 +17,23 @@ KEYS_WITH_UTILITY = [
 INS_TO = 'sys.path'
 DELETE_SYS_PATH_INDEX = 0
 _sys_path_index_deleted = False
+SEP = os.sep
+_LOG = 0
+
+def _set_log(value=1):
+    from . import pathvar
+    pathvar._LOG = value
+    global _LOG
+    _LOG = value
+
+set_logging = _set_log
+
+def set_PRJ_FN(value):
+    from . import settings
+    settings.PRJ_FN = value
+    # by default prj.yaml
+    global PRJ_FN
+    PRJ_FN = value
 
 
 class Project:
@@ -106,10 +123,10 @@ class Project:
         contains_x = next((x for x in ['$PRJPATH','$PPATH'] if path.startswith(x)), None)
         if contains_x:
             path = path[len(contains_x):]
-        npth = opt.normpath(path).strip('\\')
+        npth = opt.normpath(path).strip(SEP)
         srcpth = opt.normpath(opt.join(self.ppath,npth))
         
-        if npth == '..' or npth[:3] == '..\\':
+        if npth == '..' or npth[:3] == '..'+SEP:
             raise ValueError('srcDir must be inside project dir tree, got: {}'.format(npth))
         elif opt.splitdrive(npth)[0] != '':
             raise ValueError('srcDirs must be relative, got: {}'.format(path))
@@ -144,7 +161,7 @@ class Project:
 
         
     def archive(self, package=None,
-                destination='$PRJPATH\\..\\_backup',
+                destination='$PRJPATH{}..{}_backup'.format(SEP,SEP),
                 compression='ZIP_DEFLATED',
                 include_pycache=False,
                 exists='rename'):
@@ -217,13 +234,26 @@ def resolve_path(path, astype='$PPATH', op='isdir', select='all', parent_prj=Non
     #among other operations the path is defaultized (_defaultize(path))
     #thus for this function to include the possibility of 'path' being completely arbitrary,
     # must ensure that DEFAULT_PATHS[dtype] contains PARAM_MAP[dtype]
-    paths = replace_variables(_defaultize(path), dtype=astype, aPrj = parent_prj)
+    defaultized = _defaultize(path)
+    if _LOG:
+        print('resolve_path() defaultized:', defaultized)
+        
+    paths = replace_variables(defaultized, dtype=astype, aPrj = parent_prj)
+    if _LOG:
+        print('resolve_path() paths:', paths)
     #if astype == '$EXTLIB': print(paths)
-    paths = [opt.normpath(x.strip('\\')) for x in paths]        
+    paths = [opt.normpath(x.strip(SEP) if _IS_WINDOWS else x.rstrip(SEP)) for x in paths]        
     
-    #drop relative paths:
-    abs_paths = [x for x in paths if opt.splitdrive(x)[0] != '']
-    opfilter = map(opt.realpath, filter(realop, abs_paths))
+    #drop relative paths (due to our os.getcwd() being uncertain; prj.yaml isn't necessarily in the project root dir)
+    if _IS_WINDOWS:
+        abs_paths = [opt.realpath(x) for x in paths if opt.splitdrive(x)[0] != '']
+    else:
+        abs_paths = [opt.realpath(opt.expanduser(x)) for x in paths if x[0] in (SEP, '~')] # expanduser() bc opt.isdir() doesn't undertand '~'
+    
+    if _LOG:
+        print('resolve_path() abs_paths:', abs_paths)
+
+    opfilter = filter(realop, abs_paths)
     
     if select == 'first':
         try:
@@ -240,13 +270,19 @@ def find_prj_file(path, procedure='search', astype='$PPATH', parent_prj=None):
     response = {'dir': None, 'error': None}
     
     if procedure == 'search':
-        drive, trail = opt.splitdrive(opt.realpath(path))
-        drive += '\\'
-        pathparts = trail.split('\\')[1:]
-        len_path = len(pathparts)
+        if _IS_WINDOWS:
+            drive, trail = opt.splitdrive(opt.realpath(path))
+            drive += '\\'
+            pathparts = trail.split('\\')[1:]
+            len_path = len(pathparts)
+            
+            n_first_parts_only = lambda i: opt.join(drive, *pathparts[:len_path-i], PRJ_FN)
+            prjfilepaths = map(n_first_parts_only, list(range(len_path+1)))
+        else:
+            split = split_linux_path(path)
+            n_first_parts_only = lambda i: opt.join(*split[:len(split)-i], PRJ_FN)
+            prjfilepaths = map(n_first_parts_only, list(range(len(split)+1)))
         
-        lambdafunc = lambda i: opt.join(drive, *pathparts[:len_path-i], PRJ_FN)
-        prjfilepaths = map(lambdafunc, list(range(len_path+1)))
         #print(list(prjfilepaths))
         #print(list(filter(opt.isfile, prjfilepaths)))
         try: response['dir'] = opt.dirname( next(filter(opt.isfile, prjfilepaths)) )

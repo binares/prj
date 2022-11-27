@@ -1,0 +1,18 @@
+name: prj
+version: 2.1.0a1
+
+srcDirs:
+ - $PPATH
+
+extLibs:
+ - uxs
+ - wsclient
+ - fons
+ - site-packages
+ 
+data: $C_OR_TILDE/PProjects/PData/COIN
+myData: $C_OR_TILDE/PProjects/myData
+
+#exchange_data_parent: D:\PData\COIN
+#social_data_parent: D:\PData\COIN
+#chain_data_parent: D:\PData\COIN

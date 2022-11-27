@@ -1,4 +1,4 @@
-# prj-0.3.2
+# prj-0.4.0
 Set up path dependencies of a python project from any submodule, or via interactive shell/IDLE.
 Currently only works on Windows platform + python>=3.4.
 
